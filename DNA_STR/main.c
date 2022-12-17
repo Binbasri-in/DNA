@@ -17,7 +17,7 @@ typedef struct _dna // tag name is _dna
 } dna; // name of the data structure
 
 // Function prototypes
-void load_csv_dna(FILE * file, dna *data);
+void load_csv_dna(char *file, dna *data);
 int STR_count_file(char STR[], char *file_path );
 int STR_count_string(char STR[], char *dna_sequence );
 dna find_match(dna *data, dna test_dna);
@@ -30,20 +30,64 @@ bool comp_two_str(dna dna1, dna dna2);
 // The main function
 int main(int argc, char *argv[])
 {
+    int state = 0; // 0 for no database, 1 for database
     // check the command line inputs for any database
-    // 
+    if (argc == 2)
+    {
+        // choose the state of the program
+        state = 1;
+    }
+    else
+    {
+        // choose the state of the program
+        state = 0;
+    }
+
+    // switch between the states
+    switch(state)
+    {
+        // case 0: no database
+        case 0:
+        // case 1: database
+        case 1: 
+        {
+            // create a new dna structure
+            dna *data = NULL;
+            load_csv_dna(argv[1], data);
+            database_menu(data);
+            return 0;
+        }
+    }
 }
 
-void load_csv_dna(FILE * file, dna *data)
+// database menu
+void database_menu(dna *data)
+{
+    for(;;)
+    {
+        // print the menu
+        printf("Choose one of the following options:\n");
+        printf("1. Add a new DNA sequence to the database.\n");
+        printf("2. Analyse new DNA and apply some processes.\n");
+        printf("3. Exit the program.\n");
+        printf("Your choice: ");
+        // get the user input
+        int choice;
+        scanf("%d", &choice);
+        // switch between the choices
+        switch(choice)
+    }
+
+}
+
+
+void load_csv_dna(char *file, dna *data)
 {
     // read the csv row by row or line by line
     // for each column in the row not including the header
     // create new dna node to store the data in it
     // add the new node to the linked list
     // print the number of rows and show successful load
-    
-
-
 
 }
 
