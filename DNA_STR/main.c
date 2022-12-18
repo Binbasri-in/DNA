@@ -24,6 +24,12 @@ dna find_match(dna *data, dna test_dna);
 void add_dna(dna *data, dna item);
 void free_dna(dna *data);
 bool comp_two_str(dna dna1, dna dna2);
+void find_match_option(dna *data);
+void find_match_name(dna *data);
+void add_dna_option(dna *data);
+void display_database(dna *data);
+void database_menu(dna *data);
+void save_database(dna *data, char *file);
 
 
 
@@ -55,6 +61,9 @@ int main(int argc, char *argv[])
             dna *data = NULL;
             load_csv_dna(argv[1], data);
             database_menu(data);
+            // save and free
+            save_database(data, argv[1]);
+            free_dna(data);
             return 0;
         }
     }
@@ -66,16 +75,43 @@ void database_menu(dna *data)
     for(;;)
     {
         // print the menu
-        printf("Choose one of the following options:\n");
-        printf("1. Add a new DNA sequence to the database.\n");
-        printf("2. Analyse new DNA and apply some processes.\n");
-        printf("3. Exit the program.\n");
-        printf("Your choice: ");
-        // get the user input
+        printf("1. Add a new DNA sequence to the database\n");
+        printf("2. Search for a DNA sequence in the database from a DNA\n");
+        printf("3. Display the info of a given name\n");
+        printf("4. Display the database\n");
+        printf("5. Save and Exit\n");
+        printf("Enter your choice: ");
+        // get the choice
         int choice;
         scanf("%d", &choice);
         // switch between the choices
         switch(choice)
+        {
+            case 1: // add new sequence
+            {
+                add_dna_option(data);
+                break;
+            }
+            case 2: // search for a sequence
+            {
+                find_match_option(data);
+                break;
+            }
+            case 3: // display the info of a given name
+            {
+                find_match_name(data);
+                break;
+            }
+            case 4: // display the database
+            {
+                display_database(data);
+                break;
+            }
+            case 5: // save and exit
+            {
+                return;
+            }
+        }
     }
 
 }
@@ -123,6 +159,44 @@ int STR_count_string(char STR[], char *dna_sequence )
 
 }
 
+void find_match_option(dna *data)
+{
+    // get the DNA sequence
+    printf("Enter the DNA sequence if it's small or filename: ");
+    char sequence[500];
+    scanf("%s", sequence);
+    // create a new dna structure
+    dna test_dna;
+    // get the STR counts
+    // if the sequence is a file
+    if (strstr(sequence, ".txt") != NULL)
+    {
+        for (int i = 0; i < STRs_number; i++)
+        {
+            test_dna.STR[i] = STR_count_file(STRs[i], sequence);
+        }
+    }
+    // if the sequence is a string
+    else
+    {
+        for (int i = 0; i < STRs_number; i++)
+        {
+            test_dna.STR[i] = STR_count_string(STRs[i], sequence);
+        }
+    }
+    // find the match
+    dna match = find_match(data, test_dna);
+    // print the result
+    if (match.name != NULL)
+    {
+        printf("The DNA sequence belongs to %s\n", match.name);
+    }
+    else
+    {
+        printf("The DNA sequence doesn't belong to anyone\n");
+    }
+}
+
 dna find_match(dna *data, dna test_dna)
 {
     // iterate through the linked list
@@ -134,6 +208,68 @@ dna find_match(dna *data, dna test_dna)
 
 
 
+}
+
+void find_match_name(dna *data)
+{
+    // get the name of the person
+    printf("Enter the name of the person: ");
+    char name[20];
+    scanf("%s", name);
+    // search for the name
+    dna *current = data;
+    while (current != NULL)
+    {
+        if (strcmp(current->name, name) == 0)
+        {
+            // print the info
+            printf("Name: %s\n", current->name);
+            printf("STR counts: ");
+            for (int i = 0; i < STRs_number; i++)
+            {
+                printf("%d ", current->STR[i]);
+            }
+            printf("\n");
+            break;
+        }
+        current = current->next;
+    }
+    
+}
+
+void add_dna_option(dna *data)
+{
+    // get the name of the person
+    printf("Enter the name of the person: ");
+    char name[20];
+    scanf("%s", name);
+    // get the DNA sequence
+    printf("Enter the DNA sequence if it's small or filename: ");
+    char sequence[500];
+    scanf("%s", sequence);
+    // create a new dna structure
+    dna new_dna;
+    // copy the name
+    strcpy(new_dna.name, name);
+    // get the STR counts
+    // if the sequence is a file
+    if (strstr(sequence, ".txt") != NULL)
+    {
+        for (int i = 0; i < STRs_number; i++)
+        {
+            new_dna.STR[i] = STR_count_file(STRs[i], sequence);
+        }
+    }
+    // if the sequence is a string
+    else
+    {
+        for (int i = 0; i < STRs_number; i++)
+        {
+            new_dna.STR[i] = STR_count_string(STRs[i], sequence);
+        }
+    }
+    // add the new dna to the database
+    add_dna(data, new_dna);
 }
 
 void add_dna(dna *data, dna item)
@@ -161,5 +297,19 @@ bool comp_two_str(dna dna1, dna dna2)
     // simple comparasion between the STR counts in each dna and returns false if there was any difference
 
 
+
+}
+
+void display_database(dna *data)
+{
+    // iterate through the linked list and print the info of each node
+    // print the number of nodes in the database
+
+}
+
+void save_database(dna *data)
+{
+    // save the current structure into a csv file with the same name of the given file if any
+    // free the allocated memory used for the linked list
 
 }
