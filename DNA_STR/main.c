@@ -3,10 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-// Global variables
-char *STRs[8] = {"AGATC","TTTTTTCT","AATG","TCTAG","GATA","TATC","GAAA","TCTG"};
-int STRs_number = 8;
-
 // Structs
 typedef struct _dna // tag name is _dna
 {
@@ -16,20 +12,27 @@ typedef struct _dna // tag name is _dna
     struct _dna *next; // pointer to the next node
 } dna; // name of the data structure
 
+// Global variables
+char *STRs[8] = {"AGATC","TTTTTTCT","AATG","TCTAG","GATA","TATC","GAAA","TCTG"};
+int STRs_number = 8;
+
+
+
 // Function prototypes
-void load_csv_dna(char *file, dna *data);
+void load_csv_dna(char *file, dna **data);
 int STR_count_file(char STR[], char *file_path );
 int STR_count_string(char STR[], char *dna_sequence );
-dna find_match(dna *data, dna test_dna);
-void add_dna(dna *data, dna item);
+dna* find_match(dna *current_dna, dna test_dna);
+void add_dna(dna **data, dna *item);
 void free_dna(dna *data);
 bool comp_two_str(dna dna1, dna dna2);
-void find_match_option(dna *data);
-void find_match_name(dna *data);
-void add_dna_option(dna *data);
-void display_database(dna *data);
-void database_menu(dna *data);
-void save_database(dna *data, char *file);
+void find_match_option(dna **data);
+void find_match_name(dna **data);
+void add_dna_option(dna **data);
+void display_database(dna **data);
+void database_menu(dna **data);
+void save_database(dna **data, char *filename);
+void print_dna(dna *data);
 
 
 
@@ -46,7 +49,7 @@ int main(int argc, char *argv[])
     else
     {
         // choose the state of the program
-        state = 0;
+        state = 1;
     }
 
     // switch between the states
@@ -58,19 +61,20 @@ int main(int argc, char *argv[])
         case 1: 
         {
             // create a new dna structure
-            dna *data = NULL;
-            load_csv_dna(argv[1], data);
-            database_menu(data);
+            dna *head = NULL; // head of the linked list
+            char *filename = "large.csv";
+            load_csv_dna(filename, &head);
+            database_menu(&head);
             // save and free
-            save_database(data, argv[1]);
-            free_dna(data);
+            save_database(&head, filename);
+            free_dna(head);
             return 0;
         }
     }
 }
 
 // database menu
-void database_menu(dna *data)
+void database_menu(dna **data)
 {
     for(;;)
     {
@@ -117,49 +121,209 @@ void database_menu(dna *data)
 }
 
 
-void load_csv_dna(char *file, dna *data)
-{
-    // read the csv row by row or line by line
-    // for each column in the row not including the header
-    // create new dna node to store the data in it
-    // add the new node to the linked list
-    // print the number of rows and show successful load
+void load_csv_dna(char *file, dna **data)
+{   
+    int row = 0, column = 0, i = 0;
+    //open the file
+    FILE *fp = fopen(file, "r");
+    //check if the file is opened
+    if (!fp) {
+        // Error in file opening
+        printf("Can't open file\n");
+        return;
+    }
+    //set a buffer for reading the file line by line until the end
+    char buffer[500];
+    // temporary variable for conversions
+    char temp[10];
 
+    for (;;) // you can specifie a limit by modifiying the loop
+    {
+        if (fscanf(fp, "%[^\n]%*c", buffer) == EOF) // read the line 
+        {
+            // get the account_no
+            fclose(fp);
+            return;// if the end of file is reached, close and return 1
+        }
+
+        // skip the first line
+        if (row == 0)
+        {
+            row++;
+            continue;
+        }
+
+        //split the line into tokens
+        char *token = strtok(buffer, ",");
+        column = 0;
+        // create a new dna structure
+        dna new_dna;
+        while (token) // read the tokens column by column
+        {
+            // get the name
+            if (column == 0)
+            {
+                // copy the name
+                strcpy(new_dna.name, token);
+                
+            }
+            // get the STR counts
+            else
+            {
+                // convert the string to int
+                int count = atoi(token);
+                // add the count to the dna
+                new_dna.STR[column - 1] = count;
+            }
+            // get the next token
+            token = strtok(NULL, ",");
+            // increment the column
+            column++;
+        }
+        // add the new dna to the database
+        add_dna(data, &new_dna);
+        print_dna(*data);
+        // increment the row
+        row++;
+    }
+    // print row
+    printf("row: %d\n", row);
+    // close the file
+    fclose(fp);
 }
 
 int STR_count_file(char STR[], char *file_path )
 {
     // open the file in read mode
-    // start parsing the file till you find the first letter
-    // if first was found check the other letters following it
-    // if one was a match start counting
-    // check the next substring if it has the same str and continue counting till there is no match
-    // compare the current count with the previous one and keep the maximum only
-    // repeate the process till you reach theend of file
-    // return the maximum count that was found in the file
+    FILE *file = fopen(file_path, "r");
+    // check if the file is opened successfully
+    if (file == NULL)
+    {
+        printf("Error opening the file\n");
+        exit(10);
+    }
+    // get the length of the STR
+    int STR_length = strlen(STR);
+    // read the file letter by letter
+    int count = 0;
+    int max_count = 0;
+    char current_letter = fgetc(file);
 
-
-
-
+    while (current_letter != EOF)
+    {
+        // while the current letter is the same as the first letter of the STR
+        while (current_letter == STR[0])
+        {
+            // check if the next letters are the same as the rest of the STR
+            bool is_same = true;
+            for (int i = 1; i < STR_length; i++)
+            {
+                // get the next letter
+                current_letter = fgetc(file);
+                if ( current_letter != STR[i])
+                {
+                    is_same = false;
+                    break;
+                }
+            }
+            // if the next letters are the same as the rest of the STR
+            if (is_same)
+            {
+                // increase the count
+                count++;
+                
+            }
+            // if the next letters are not the same as the rest of the STR
+            else
+            {
+                break;
+            }
+            // get the next letter
+            current_letter = fgetc(file);
+            
+        }
+        // if the count is bigger than the max count
+        if (count > max_count)
+        {
+            // update the max count
+            max_count = count;
+        }
+        // reset the count
+        count = 0;
+        // get the next letter
+        current_letter = fgetc(file);
+        
+    }
+    // close the file
+    fclose(file);
+    // return the max count
+    return max_count;
 }
 
 int STR_count_string(char STR[], char *dna_sequence )
 {
-    // here we could use sscanf()
-    // start parsing the string till you find the first letter
-    // if first was found check the other letters following it
-    // if one was a match start counting
-    // check the next substring if it has the same str and continue counting till there is no match
-    // compare the current count with the previous one and keep the maximum only
-    // repeate the process till you reach theend of string
-    // return the maximum count that was found in the file
-
-
-
-
+    // this function counts the number of an STR in a string
+    // get the length of the STR
+    int STR_length = strlen(STR);
+    // read the string letter by letter
+    int count = 0;
+    int max_count = 0;
+    char current_letter = dna_sequence[0];
+    int index = 0;
+    
+    while (current_letter != '\0')
+    {
+        // while the current letter is the same as the first letter of the STR
+        while (current_letter == STR[0])
+        {
+            // check if the next letters are the same as the rest of the STR
+            bool is_same = true;
+            for (int i = 1; i < STR_length; i++)
+            {
+                // get the next letter
+                index += 1;
+                current_letter = dna_sequence[index];
+                if ( current_letter != STR[i])
+                {
+                    is_same = false;
+                    break;
+                }
+            }
+            // if the next letters are the same as the rest of the STR
+            if (is_same)
+            {
+                // increase the count
+                count++;
+                
+            }
+            // if the next letters are not the same as the rest of the STR
+            else
+            {
+                break;
+            }
+            // get the next letter
+            index += 1;
+            current_letter = dna_sequence[index];
+            
+        }
+        // if the count is bigger than the max count
+        if (count > max_count)
+        {
+            // update the max count
+            max_count = count;
+        }
+        // reset the count
+        count = 0;
+        // get the next letter
+        index += 1;
+        current_letter = dna_sequence[index];
+        
+    }
+    // return the max count
+    return max_count;
 }
 
-void find_match_option(dna *data)
+void find_match_option(dna **data)
 {
     // get the DNA sequence
     printf("Enter the DNA sequence if it's small or filename: ");
@@ -185,11 +349,11 @@ void find_match_option(dna *data)
         }
     }
     // find the match
-    dna match = find_match(data, test_dna);
+    dna *match = find_match(data, test_dna);
     // print the result
-    if (match.name != NULL)
+    if (match->name != NULL)
     {
-        printf("The DNA sequence belongs to %s\n", match.name);
+        printf("The DNA sequence belongs to %s\n", match->name);
     }
     else
     {
@@ -197,20 +361,33 @@ void find_match_option(dna *data)
     }
 }
 
-dna find_match(dna *data, dna test_dna)
+dna* find_match(dna *current_dna, dna test_dna)
 {
     // iterate through the linked list
-    // compare the STR counnts in for each node
-    // if there was any match return the node where the match happen 
-    //(can be reduced to return the name only since the dna data is already given)
+    // for each node compare the STR counts
+    while (current_dna != NULL)
+    {
+        int match = 1;
+        for (int i = 0; i < STRs_number; i++)
+        {
+            if (current_dna->STR[i] != test_dna.STR[i])
+            {
+                match = 0;
+                break;
+            }
+        }
+        // if there was any match return the node where the match happen 
+        if (match == 1)
+        {
+            return current_dna;
+        }
+        current_dna = current_dna->next;
+    }
     // if nothing was found return NULL
-
-
-
-
+    return NULL;
 }
 
-void find_match_name(dna *data)
+void find_match_name(dna **data)
 {
     // get the name of the person
     printf("Enter the name of the person: ");
@@ -237,7 +414,7 @@ void find_match_name(dna *data)
     
 }
 
-void add_dna_option(dna *data)
+void add_dna_option(dna **data)
 {
     // get the name of the person
     printf("Enter the name of the person: ");
@@ -269,47 +446,102 @@ void add_dna_option(dna *data)
         }
     }
     // add the new dna to the database
-    add_dna(data, new_dna);
+    add_dna(data, &new_dna);
 }
 
-void add_dna(dna *data, dna item)
-{
-    // check if the given dna is already in the database
-    // allocate memory to for the new item
+void add_dna(dna **data, dna *item)
+{   
+    // create a new node
+    dna *new_dna = malloc(sizeof(dna));
+    
+    // copy the data
+    strcpy(new_dna->name, item->name);
+    for (int i = 0; i < STRs_number; i++)
+    {
+        new_dna->STR[i] = item->STR[i];
+    }
+    // add it to the beginning of the linked list
     // add it to the structure
-
-
-
+    new_dna->next = *data;
+    *data = new_dna;
+    print_dna(*data);
 
 }
+    
 
-void free_dna(dna *data)
+void free_dna(dna **data)
 {
-    // save the current structure into a csv file with the same name of the given file if any
     // free the allocated memory used for the linked list
-
-
-
+    while (data != NULL)
+    {
+        dna *temp = data;
+        data = data->next;
+        free(temp);
+    }
 }
 
 bool comp_two_str(dna dna1, dna dna2)
 {
     // simple comparasion between the STR counts in each dna and returns false if there was any difference
-
-
-
+    for (int i = 0; i < STRs_number; i++)
+    {
+        if (dna1.STR[i] != dna2.STR[i])
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
-void display_database(dna *data)
+void display_database(dna **data)
 {
+    int count = 0;
     // iterate through the linked list and print the info of each node
+    while (data != NULL)
+    {
+        printf("Name: %s\n", data->name);
+        printf("STR counts: ");
+        for (int i = 0; i < STRs_number; i++)
+        {
+            printf("%d ", data->STR[i]);
+        }
+        printf("\n");
+        data = data->next;
+        count++;
+    }
     // print the number of nodes in the database
-
+    printf("There are %d people in the database\n", count);
 }
 
-void save_database(dna *data)
+void save_database(dna **data, char *filename)
 {
     // save the current structure into a csv file with the same name of the given file if any
-    // free the allocated memory used for the linked list
+    // open the file
+    FILE *file = fopen(filename, "w");
+    // iterate through the linked list and print the info of each node
+    while (data != NULL)
+    {
+        fprintf(file, "%s,", data->name);
+        for (int i = 0; i < STRs_number; i++)
+        {
+            fprintf(file, "%d,", data->STR[i]);
+        }
+        fprintf(file, "\n");
+        data = data->next;
+    }
+    // close the file
+    fclose(file);
 
+}
+
+void print_dna(dna *data)
+{
+        // print the content of data
+    printf("Name: %s\n", data->name);
+    printf("STR counts: ");
+    for (int i = 0; i < STRs_number; i++)
+    {
+        printf("%d ", data->STR[i]);
+    }
+    printf("\n");
 }

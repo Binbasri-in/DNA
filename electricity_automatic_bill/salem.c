@@ -70,8 +70,7 @@ int main()
         
         
     }
-    return 0;
-
+    return 0
 }
 
 int read(char *file, account data[], int *account_no)
@@ -92,7 +91,7 @@ int read(char *file, account data[], int *account_no)
 
     for (;;) // you can specifie a limit by modifiying the loop
     {
-        if (fscanf(fp, "%[^\n]%*c", buffer) == EOF) // read the line 
+        if (fscanf(fp, "%%[^\n]*c", buffer) == EOF) // read the line 
         {
             // get the account_no
             *account_no = i != 0 ? data[i-1].account_number + 1 : 1;
