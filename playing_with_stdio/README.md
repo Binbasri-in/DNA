@@ -22,4 +22,4 @@ The standard error is a stream of data that is written by the program. It is usu
 
 ### The following is a try to visualize it:
 
-![stdio](https://user-images.githubusercontent.com/14032427/120112201-2b2b4a00-c17e-11eb-9b9a-9b2b2c5c9b9a.png)
+![stdio](basic_stdio.jpg)
