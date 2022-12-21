@@ -8,33 +8,28 @@ typedef struct _dna // tag name is _dna
 {
     char name[20]; // name of the person
     int STR[8]; // STR counts
-    unsigned long long int counts; // the combined counts (Try)
+    //unsigned long long int counts_hash; // the combined counts (Try)
     struct _dna *next; // pointer to the next node
 } dna; // name of the data structure
 
 // Global variables
 char *STRs[8] = {"AGATC","TTTTTTCT","AATG","TCTAG","GATA","TATC","GAAA","TCTG"};
-int STRs_number = 8;
+int STRs_number = 8; // number of STRs used
 
 
 
 // Function prototypes
 void load_csv_dna(char *file, dna **data);
-int STR_count_file(char STR[], char *file_path );
-int STR_count_string(char STR[], char *dna_sequence );
-dna* find_match(dna *current_dna, dna test_dna);
-void add_dna(dna **data, dna *item);
-void free_dna(dna *data);
-bool comp_two_str(dna dna1, dna dna2);
-void find_match_option(dna **data);
-void find_match_name(dna **data);
-void add_dna_option(dna **data);
-void display_database(dna **data);
-void database_menu(dna **data);
-void save_database(dna **data, char *filename);
 void print_dna(dna *data);
-
-
+void add_dna_option(dna **data);
+void find_match_option(dna *data);
+void find_match_name(dna *data);
+void display_database(dna *data);
+void save_database(dna *data, char *filename);
+void database_menu(char *filename);
+dna* find_match(dna *current_dna, dna *test_dna);
+void fast_track();
+void no_database_menu();
 
 // The main function
 int main(int argc, char *argv[])
@@ -49,33 +44,40 @@ int main(int argc, char *argv[])
     else
     {
         // choose the state of the program
-        state = 1;
+        state = 0;
+        printf("Check: ./DNA_STR help\nTo get information about the program\n");
     }
 
     // switch between the states
     switch(state)
     {
         // case 0: no database
-        case 0:
+        case 0: no_database_menu();
+                return 0;
         // case 1: database
         case 1: 
         {
-            // create a new dna structure
-            dna *head = NULL; // head of the linked list
-            char *filename = "large.csv";
-            load_csv_dna(filename, &head);
-            database_menu(&head);
-            // save and free
-            save_database(&head, filename);
-            free_dna(head);
+            if (strcmp(argv[1], "help") == 0)
+            {
+                printf("This program is used to compare DNA sequences\n");
+                printf("To use the program, you need to create a database\n");
+                printf("To create a database, run the program with no arguments\n");
+                printf("To use the database, run the program with the database filename as an argument\n");
+                printf("Example: ./DNA_STR database.csv");
+                return 0;
+            }
+            database_menu(argv[1]);
             return 0;
         }
     }
 }
 
 // database menu
-void database_menu(dna **data)
+void database_menu(char *filename)
 {
+    // load the database
+    dna *head = NULL;
+    load_csv_dna(filename, &head);
     for(;;)
     {
         // print the menu
@@ -93,26 +95,34 @@ void database_menu(dna **data)
         {
             case 1: // add new sequence
             {
-                add_dna_option(data);
+                add_dna_option(&head);
                 break;
             }
             case 2: // search for a sequence
             {
-                find_match_option(data);
+                find_match_option(head);
                 break;
             }
             case 3: // display the info of a given name
             {
-                find_match_name(data);
+                find_match_name(head);
                 break;
             }
             case 4: // display the database
             {
-                display_database(data);
+                display_database(head);
                 break;
             }
             case 5: // save and exit
             {
+                save_database(head, filename);
+                // free the allocated memory used for the linked list
+                while (head != NULL)
+                {
+                    dna *temp = head;
+                    head = head->next;
+                    free(temp);
+                }
                 return;
             }
         }
@@ -120,6 +130,56 @@ void database_menu(dna **data)
 
 }
 
+// no database menu
+void no_database_menu()
+{
+    for(;;)
+    {
+        // print the menu
+        printf("1. Create a new database\n");
+        printf("2. Fast comparasion between DNAs files\n");
+        printf("3. Exit\n");
+        printf("Enter your choice: ");
+        // get the choice
+        int choice;
+        scanf("%d", &choice);
+        // switch between the choices
+        switch(choice)
+        {
+            case 1: // create a new database
+            {
+                // get the filename
+                char filename[20];
+                printf("Enter the filename: ");
+                scanf("%s", filename);
+                // create the file
+                FILE *fp = fopen(filename, "w");
+                // check if the file is created
+                if (fp == NULL)
+                {
+                    printf("Error in creating the file\n");
+                    return;
+                }
+                // write the first line
+                fprintf(fp, "name,AGATC,TTTTTTCT,AATG,TCTAG,GATA,TATC,GAAA,TCTG\n");
+                // close the file
+                fclose(fp);
+                // call the database menu
+                database_menu(filename);
+                return;
+            }
+            case 2: // call the fast track function
+            {
+                fast_track();
+                return;
+            }
+            case 3: // exit
+            {
+                return;
+            }
+        }
+    }
+}
 
 void load_csv_dna(char *file, dna **data)
 {   
@@ -157,14 +217,14 @@ void load_csv_dna(char *file, dna **data)
         char *token = strtok(buffer, ",");
         column = 0;
         // create a new dna structure
-        dna new_dna;
+        dna *new_dna = malloc(sizeof(dna));
         while (token) // read the tokens column by column
         {
             // get the name
             if (column == 0)
             {
                 // copy the name
-                strcpy(new_dna.name, token);
+                strcpy(new_dna->name, token);
                 
             }
             // get the STR counts
@@ -173,7 +233,7 @@ void load_csv_dna(char *file, dna **data)
                 // convert the string to int
                 int count = atoi(token);
                 // add the count to the dna
-                new_dna.STR[column - 1] = count;
+                new_dna->STR[column - 1] = count;
             }
             // get the next token
             token = strtok(NULL, ",");
@@ -181,7 +241,8 @@ void load_csv_dna(char *file, dna **data)
             column++;
         }
         // add the new dna to the database
-        add_dna(data, &new_dna);
+        new_dna->next = *data;
+        *data = new_dna;
         print_dna(*data);
         // increment the row
         row++;
@@ -192,7 +253,7 @@ void load_csv_dna(char *file, dna **data)
     fclose(fp);
 }
 
-int STR_count_file(char STR[], char *file_path )
+int STR_count_file(char STR[], char *file_path)
 {
     // open the file in read mode
     FILE *file = fopen(file_path, "r");
@@ -323,21 +384,21 @@ int STR_count_string(char STR[], char *dna_sequence )
     return max_count;
 }
 
-void find_match_option(dna **data)
+void find_match_option(dna *data)
 {
     // get the DNA sequence
     printf("Enter the DNA sequence if it's small or filename: ");
     char sequence[500];
     scanf("%s", sequence);
     // create a new dna structure
-    dna test_dna;
+    dna *test_dna = malloc(sizeof(dna));
     // get the STR counts
     // if the sequence is a file
     if (strstr(sequence, ".txt") != NULL)
     {
         for (int i = 0; i < STRs_number; i++)
         {
-            test_dna.STR[i] = STR_count_file(STRs[i], sequence);
+            test_dna->STR[i] = STR_count_file(STRs[i], sequence);
         }
     }
     // if the sequence is a string
@@ -345,7 +406,7 @@ void find_match_option(dna **data)
     {
         for (int i = 0; i < STRs_number; i++)
         {
-            test_dna.STR[i] = STR_count_string(STRs[i], sequence);
+            test_dna->STR[i] = STR_count_string(STRs[i], sequence);
         }
     }
     // find the match
@@ -361,7 +422,7 @@ void find_match_option(dna **data)
     }
 }
 
-dna* find_match(dna *current_dna, dna test_dna)
+dna* find_match(dna *current_dna, dna *test_dna)
 {
     // iterate through the linked list
     // for each node compare the STR counts
@@ -370,7 +431,7 @@ dna* find_match(dna *current_dna, dna test_dna)
         int match = 1;
         for (int i = 0; i < STRs_number; i++)
         {
-            if (current_dna->STR[i] != test_dna.STR[i])
+            if (current_dna->STR[i] != test_dna->STR[i])
             {
                 match = 0;
                 break;
@@ -387,7 +448,7 @@ dna* find_match(dna *current_dna, dna test_dna)
     return NULL;
 }
 
-void find_match_name(dna **data)
+void find_match_name(dna *data)
 {
     // get the name of the person
     printf("Enter the name of the person: ");
@@ -425,16 +486,16 @@ void add_dna_option(dna **data)
     char sequence[500];
     scanf("%s", sequence);
     // create a new dna structure
-    dna new_dna;
+    dna *new_dna = malloc(sizeof(dna));
     // copy the name
-    strcpy(new_dna.name, name);
+    strcpy(new_dna->name, name);
     // get the STR counts
     // if the sequence is a file
     if (strstr(sequence, ".txt") != NULL)
     {
         for (int i = 0; i < STRs_number; i++)
         {
-            new_dna.STR[i] = STR_count_file(STRs[i], sequence);
+            new_dna->STR[i] = STR_count_file(STRs[i], sequence);
         }
     }
     // if the sequence is a string
@@ -442,18 +503,20 @@ void add_dna_option(dna **data)
     {
         for (int i = 0; i < STRs_number; i++)
         {
-            new_dna.STR[i] = STR_count_string(STRs[i], sequence);
+            new_dna->STR[i] = STR_count_string(STRs[i], sequence);
         }
     }
     // add the new dna to the database
-    add_dna(data, &new_dna);
+    new_dna->next = *data;
+    *data = new_dna;
 }
 
+/*
 void add_dna(dna **data, dna *item)
-{   
+{
     // create a new node
     dna *new_dna = malloc(sizeof(dna));
-    
+
     // copy the data
     strcpy(new_dna->name, item->name);
     for (int i = 0; i < STRs_number; i++)
@@ -465,27 +528,15 @@ void add_dna(dna **data, dna *item)
     new_dna->next = *data;
     *data = new_dna;
     print_dna(*data);
-
 }
-    
+*/
 
-void free_dna(dna **data)
-{
-    // free the allocated memory used for the linked list
-    while (data != NULL)
-    {
-        dna *temp = data;
-        data = data->next;
-        free(temp);
-    }
-}
-
-bool comp_two_str(dna dna1, dna dna2)
+bool comp_two_str(dna *dna1, dna *dna2)
 {
     // simple comparasion between the STR counts in each dna and returns false if there was any difference
     for (int i = 0; i < STRs_number; i++)
     {
-        if (dna1.STR[i] != dna2.STR[i])
+        if (dna1->STR[i] != dna2->STR[i])
         {
             return false;
         }
@@ -493,7 +544,7 @@ bool comp_two_str(dna dna1, dna dna2)
     return true;
 }
 
-void display_database(dna **data)
+void display_database(dna *data)
 {
     int count = 0;
     // iterate through the linked list and print the info of each node
@@ -513,7 +564,7 @@ void display_database(dna **data)
     printf("There are %d people in the database\n", count);
 }
 
-void save_database(dna **data, char *filename)
+void save_database(dna *data, char *filename)
 {
     // save the current structure into a csv file with the same name of the given file if any
     // open the file
@@ -534,6 +585,61 @@ void save_database(dna **data, char *filename)
 
 }
 
+void fast_track()
+{
+    // get filename of the DNA sequence of the evidence found in crime scene
+    printf("Enter the filename of the DNA sequence of the evidence found in crime scene: ");
+    char filename[20];
+    scanf("%s", filename);
+    // create a dna for the evidence
+    dna *evidence = malloc(sizeof(dna));
+    // give it a name
+    strcpy(evidence->name, "evidence");
+    // get the STR counts
+    for (int i = 0; i < STRs_number; i++)
+    {
+        evidence->STR[i] = STR_count_file(STRs[i], filename);
+    }
+    // print the evidence
+    print_dna(evidence);
+
+    // get number of suspects
+    printf("Enter the number of suspects: ");
+    int number_of_suspects;
+    scanf("%d", &number_of_suspects);
+
+    for (int i = 0; i < number_of_suspects; i++)
+    {
+        // get file name of the suspect
+        printf("Enter the filename of the suspect: ");
+        char filename[20];
+        scanf("%s", filename);
+        // create a dna for the suspect
+        dna *suspect = malloc(sizeof(dna));
+        // give it a name
+        strcpy(suspect->name, "suspect");
+        // get the STR counts
+        for (int j = 0; j < STRs_number; j++)
+        {
+            suspect->STR[j] = STR_count_file(STRs[j], filename);
+        }
+        // print the suspect
+        print_dna(suspect);
+        // compare the two dna
+        if (comp_two_str(evidence, suspect))
+        {
+            printf("Match found!\n");
+            break;
+        }
+        // free the memory
+        free(suspect);
+    }
+    // if no match found
+    printf("No match found!\n");
+    // free the memory
+    free(evidence);
+}
+
 void print_dna(dna *data)
 {
         // print the content of data
@@ -545,3 +651,4 @@ void print_dna(dna *data)
     }
     printf("\n");
 }
+ 
