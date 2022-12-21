@@ -23,3 +23,4 @@ The standard error is a stream of data that is written by the program. It is usu
 ### The following is a try to visualize it:
 
 ![stdio](basic_stdio.jpg)
+![More_Info](info_stdio.jpg)
