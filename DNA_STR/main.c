@@ -243,12 +243,12 @@ void load_csv_dna(char *file, dna **data)
         // add the new dna to the database
         new_dna->next = *data;
         *data = new_dna;
-        print_dna(*data);
+        // print_dna(*data);
         // increment the row
         row++;
     }
-    // print row
-    printf("row: %d\n", row);
+    // print row for testing
+    printf("number of row: %d\n", row);
     // close the file
     fclose(fp);
 }
